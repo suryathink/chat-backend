@@ -7,6 +7,7 @@ import { connectMySQL, pool } from "./configs/mysql";
 // Imported for its side effect: initialise Firebase at startup so bad
 // credentials fail immediately, not on the first message.
 import "./configs/firebase";
+
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFound } from "./middlewares/notFound";
 import routes from "./routes";

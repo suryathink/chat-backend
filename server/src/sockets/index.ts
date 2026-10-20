@@ -29,10 +29,16 @@ export const initSockets = (httpServer: HttpServer, corsOrigin: string | string[
   io.use(async (socket, next) => {
     try {
       const parsed = handshakeSchema.safeParse(socket.handshake.auth);
-      if (!parsed.success) return next(new Error("auth.userId must be a valid UUID"));
+      if (!parsed.success) {
+        logger.warn(`socket rejected: invalid userId, socket=${socket.id} ip=${socket.handshake.address}`);
+        return next(new Error("auth.userId must be a valid UUID"));
+      }
 
       const user = await UserModel.findById(parsed.data.userId);
-      if (!user) return next(new Error("Unknown user"));
+      if (!user) {
+        logger.warn(`socket rejected: unknown user=${parsed.data.userId} socket=${socket.id}`);
+        return next(new Error("Unknown user"));
+      }
 
       socket.data.userId = user.id;
       return next();
@@ -46,12 +52,12 @@ export const initSockets = (httpServer: HttpServer, corsOrigin: string | string[
     const { userId } = socket.data;
     // Personal room: lets us notify the user about new chats on every device.
     void socket.join(userRoom(userId));
-    logger.debug(`socket connected: user=${userId} socket=${socket.id}`);
+    logger.info(`socket connected: user=${userId} socket=${socket.id}`);
 
     registerChatHandlers(socket);
 
     socket.on("disconnect", (reason) => {
-      logger.debug(`socket disconnected: user=${userId} reason=${reason}`);
+      logger.info(`socket disconnected: user=${userId} socket=${socket.id} reason=${reason}`);
     });
   });
 
