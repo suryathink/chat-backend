@@ -201,6 +201,11 @@ socket.emit("message:send", { chatId, text: "Hello" }, (res) => console.log(res)
 
 These fire whether the action came through REST or through a socket.
 
+### Demo
+With the server running, `npm run demo:socket` connects Alice and Bob, has them join their chat, sends
+messages over both the socket and REST, marks a message read, updates last seen, and prints every event
+each user receives.
+
 ---
 
 ## Data model
