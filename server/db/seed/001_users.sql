@@ -1,0 +1,5 @@
+-- Test users with fixed ids so they can be used directly in API calls.
+INSERT IGNORE INTO users (id, name) VALUES
+  ('11111111-1111-4111-8111-111111111111', 'Alice'),
+  ('22222222-2222-4222-8222-222222222222', 'Bob'),
+  ('33333333-3333-4333-8333-333333333333', 'Charlie');
