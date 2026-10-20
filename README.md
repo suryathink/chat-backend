@@ -126,7 +126,8 @@ curl -X POST localhost:8080/chat/<chatId>/message/send -H "Content-Type: applica
 ```json
 { "message": { "id": "Xk3…", "chatId": "9b2f…", "senderId": "1111…", "text": "Hi Bob!",
                "createdAt": "2026-10-20T09:31:00.123Z",
-               "readBy": { "1111…": "2026-10-20T09:31:00.123Z" } } }
+               "readBy": { "1111…": "2026-10-20T09:31:00.123Z" },
+               "editedAt": null, "deletedAt": null } }
 ```
 `text`: 1–2000 characters (trimmed). Sender must be a member of the chat.
 The sender is marked as having read their own message, so "has user X read it?" is always `readBy[X]`.
@@ -135,10 +136,16 @@ The sender is marked as having read their own message, so "has user X read it?" 
 Returns the latest `limit` messages (default 50, max 100), **ordered oldest → newest**.
 To load older history, pass `before=<nextCursor>`.
 ```json
-{ "messages": [ { "id": "…", "text": "Hi Bob!", "createdAt": "…", "readBy": { "2222…": "…" } } ],
+{ "messages": [
+    { "id": "…", "text": "Hi Bob!", "createdAt": "…", "readBy": { "1111…": "…", "2222…": "…" },
+      "editedAt": null, "deletedAt": null },
+    { "id": "…", "text": "", "createdAt": "…", "readBy": { "2222…": "…" },
+      "editedAt": null, "deletedAt": "…" }
+  ],
   "nextCursor": "Ab1…" }
 ```
 `nextCursor` is `null` when there are no older messages.
+Deleted messages stay in the list with empty `text` and `deletedAt` set; edited ones have `editedAt` set.
 
 ### 4. Mark message read — `POST /chat/:chatId/message/:messageId/read`
 ```bash
@@ -226,8 +233,9 @@ These fire whether the action came through REST or through a socket.
 
 ### Demo
 With the server running, `npm run demo:socket` connects Alice and Bob, has them join their chat, sends
-messages over both the socket and REST, marks a message read, updates last seen, and prints every event
-each user receives.
+messages over both the socket and REST, marks a message read, updates last seen, shows Bob being refused
+when he tries to delete Alice's message, then has Alice edit and delete it, and prints every event each
+user receives.
 
 ---
 
