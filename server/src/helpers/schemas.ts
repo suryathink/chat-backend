@@ -40,6 +40,16 @@ export const markReadSchema = z.object({
   body: z.object({ userId }),
 });
 
+export const editMessageSchema = z.object({
+  params: z.object({ chatId, messageId }),
+  body: z.object({ userId, text }),
+});
+
+export const deleteMessageSchema = z.object({
+  params: z.object({ chatId, messageId }),
+  body: z.object({ userId }),
+});
+
 export const lastSeenSchema = z.object({
   params: z.object({ chatId }),
   body: z.object({ userId, messageId }),
@@ -54,6 +64,8 @@ export const socketSchemas = {
   joinChat: z.object({ chatId }),
   sendMessage: z.object({ chatId, text }),
   markRead: z.object({ chatId, messageId }),
+  editMessage: z.object({ chatId, messageId, text }),
+  deleteMessage: z.object({ chatId, messageId }),
   lastSeen: z.object({ chatId, messageId }),
 };
 

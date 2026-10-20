@@ -103,8 +103,9 @@ All bodies are JSON. Errors always look like:
 | Status | Meaning |
 |---|---|
 | 400 | Invalid input (bad UUID, empty text, same user twice, malformed JSON) |
-| 403 | User is not a member of the chat |
+| 403 | User is not a member of the chat, or edits/deletes someone else's message |
 | 404 | User, chat or message not found |
+| 409 | Editing a message that has been deleted |
 
 ### 1. Create or get chat — `POST /chat/create`
 ```bash
@@ -147,6 +148,21 @@ curl -X POST localhost:8080/chat/<chatId>/message/<messageId>/read -H "Content-T
 Returns the updated message. Idempotent: the first read time is kept. The sender is already in `readBy`, so marking your own message is a no-op.
 To show "seen" ticks, check `readBy` for the **other** member's id.
 
+### Edit message — `POST /chat/:chatId/message/:messageId/edit`
+```bash
+curl -X POST localhost:8080/chat/<chatId>/message/<messageId>/edit -H "Content-Type: application/json" \
+  -d '{"userId":"11111111-1111-4111-8111-111111111111","text":"Hi Bob! (fixed typo)"}'
+```
+Returns the updated message with `editedAt` set. Only the sender can edit (`403` otherwise); a deleted message can't be edited (`409`).
+
+### Delete message — `POST /chat/:chatId/message/:messageId/delete`
+```bash
+curl -X POST localhost:8080/chat/<chatId>/message/<messageId>/delete -H "Content-Type: application/json" \
+  -d '{"userId":"11111111-1111-4111-8111-111111111111"}'
+```
+Soft delete: the text is erased and `deletedAt` is set, but the message keeps its place in the history
+(clients show "This message was deleted"). Only the sender can delete (`403` otherwise). Deleting twice is a no-op.
+
 ### 5. Update last seen — `POST /chat/:chatId/lastseen`
 ```bash
 curl -X POST localhost:8080/chat/<chatId>/lastseen -H "Content-Type: application/json" \
@@ -187,6 +203,8 @@ Each event takes a payload and an optional acknowledgement callback, which recei
 | `chat:leave` | `{ chatId }` | `{ chatId }` |
 | `message:send` | `{ chatId, text }` | the created message |
 | `message:read` | `{ chatId, messageId }` | the updated message |
+| `message:edit` | `{ chatId, messageId, text }` | the edited message |
+| `message:delete` | `{ chatId, messageId }` | the deleted message |
 | `lastseen:update` | `{ chatId, messageId }` | `{ lastSeen, updated }` |
 
 ```js
@@ -198,6 +216,8 @@ socket.emit("message:send", { chatId, text: "Hello" }, (res) => console.log(res)
 | Event | Sent to | Payload |
 |---|---|---|
 | `message:new` | everyone who joined the chat | message |
+| `message:edited` | everyone who joined the chat | message (new text, `editedAt`) |
+| `message:deleted` | everyone who joined the chat | message (empty text, `deletedAt`) |
 | `message:read` | everyone who joined the chat | `{ chatId, messageId, userId, readAt }` |
 | `lastseen:updated` | everyone who joined the chat | `{ chatId, userId, messageId, updatedAt }` |
 | `chat:created` | both members (all their connected devices) | chat |
@@ -222,6 +242,7 @@ chats (id CHAR(36) PK, user_low_id FK, user_high_id FK, created_at,
 
 **Firestore**
 ```
-chats/{chatId}/messages/{messageId}  { senderId, text, createdAt, readBy: { userId: Timestamp } }
+chats/{chatId}/messages/{messageId}  { senderId, text, createdAt, readBy: { userId: Timestamp },
+                                       editedAt?, deletedAt? }
 chats/{chatId}/lastSeen/{userId}     { messageId, messageCreatedAt, updatedAt }
 ```

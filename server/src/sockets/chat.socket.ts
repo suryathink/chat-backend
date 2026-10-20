@@ -56,7 +56,7 @@ export const registerChatHandlers = (socket: ChatSocket) => {
     }),
   );
 
-  // The three below call the same services as the REST API; the resulting
+  // The handlers below call the same services as the REST API; the resulting
   // broadcasts come from the domain events in sockets/index.ts.
   socket.on(
     "message:send",
@@ -69,6 +69,20 @@ export const registerChatHandlers = (socket: ChatSocket) => {
     "message:read",
     handle("message:read", socketSchemas.markRead, ({ chatId, messageId }) =>
       messageService.markRead(chatId, messageId, userId),
+    ),
+  );
+
+  socket.on(
+    "message:edit",
+    handle("message:edit", socketSchemas.editMessage, ({ chatId, messageId, text }) =>
+      messageService.edit(chatId, messageId, userId, text),
+    ),
+  );
+
+  socket.on(
+    "message:delete",
+    handle("message:delete", socketSchemas.deleteMessage, ({ chatId, messageId }) =>
+      messageService.remove(chatId, messageId, userId),
     ),
   );
 

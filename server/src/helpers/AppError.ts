@@ -22,6 +22,10 @@ export class AppError extends Error {
   static notFound(message: string) {
     return new AppError(status.NOT_FOUND, message);
   }
+
+  static conflict(message: string) {
+    return new AppError(status.CONFLICT, message);
+  }
 }
 
 export interface ErrorResponse {

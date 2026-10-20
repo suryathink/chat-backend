@@ -68,6 +68,12 @@ export const initSockets = (httpServer: HttpServer, corsOrigin: string | string[
   domainEvents.on("message:new", (message) => {
     io.to(chatRoom(message.chatId)).emit("message:new", message);
   });
+  domainEvents.on("message:edited", (message) => {
+    io.to(chatRoom(message.chatId)).emit("message:edited", message);
+  });
+  domainEvents.on("message:deleted", (message) => {
+    io.to(chatRoom(message.chatId)).emit("message:deleted", message);
+  });
   domainEvents.on("message:read", (receipt) => {
     io.to(chatRoom(receipt.chatId)).emit("message:read", receipt);
   });

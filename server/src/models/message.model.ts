@@ -22,6 +22,14 @@ export interface MessageDoc {
   createdAt: Timestamp;
   /** userId -> when that user read the message (read receipts) */
   readBy: Record<string, Timestamp>;
+  /** Only present once the sender has edited the message. */
+  editedAt?: Timestamp;
+  /**
+   * Only present once the sender has deleted the message (soft delete: the
+   * text is cleared, the document stays so ordering, cursors and lastSeen
+   * pointers that reference it keep working).
+   */
+  deletedAt?: Timestamp;
 }
 
 export interface LastSeenDoc {
@@ -53,6 +61,8 @@ export const toMessage = (chatId: string, id: string, doc: MessageDoc): Message 
   readBy: Object.fromEntries(
     Object.entries(doc.readBy).map(([userId, at]) => [userId, at.toDate().toISOString()]),
   ),
+  editedAt: doc.editedAt ? doc.editedAt.toDate().toISOString() : null,
+  deletedAt: doc.deletedAt ? doc.deletedAt.toDate().toISOString() : null,
 });
 
 export const toLastSeen = (chatId: string, userId: string, doc: LastSeenDoc): LastSeen => ({

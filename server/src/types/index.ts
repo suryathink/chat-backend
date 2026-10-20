@@ -20,6 +20,10 @@ export interface Message {
   createdAt: string;
   /** userId -> time that user read the message */
   readBy: Record<string, string>;
+  /** Set when the sender edited the text. */
+  editedAt: string | null;
+  /** Set when the sender deleted the message; `text` is then empty. */
+  deletedAt: string | null;
 }
 
 export interface ReadReceipt {

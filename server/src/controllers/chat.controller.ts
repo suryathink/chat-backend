@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import { status } from "http-status";
 import {
   createChatSchema,
+  deleteMessageSchema,
+  editMessageSchema,
   getMessagesSchema,
   lastSeenSchema,
   markReadSchema,
@@ -36,6 +38,20 @@ export const getMessages = async (req: Request, res: Response) => {
 export const markMessageRead = async (req: Request, res: Response) => {
   const { params, body } = parseRequest(markReadSchema, req);
   const message = await messageService.markRead(params.chatId, params.messageId, body.userId);
+  res.status(status.OK).json({ message });
+};
+
+// POST /chat/:chatId/message/:messageId/edit
+export const editMessage = async (req: Request, res: Response) => {
+  const { params, body } = parseRequest(editMessageSchema, req);
+  const message = await messageService.edit(params.chatId, params.messageId, body.userId, body.text);
+  res.status(status.OK).json({ message });
+};
+
+// POST /chat/:chatId/message/:messageId/delete
+export const deleteMessage = async (req: Request, res: Response) => {
+  const { params, body } = parseRequest(deleteMessageSchema, req);
+  const message = await messageService.remove(params.chatId, params.messageId, body.userId);
   res.status(status.OK).json({ message });
 };
 

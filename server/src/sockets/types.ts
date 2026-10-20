@@ -11,6 +11,8 @@ export type Ack<T> = (response: AckResponse<T>) => void;
 export interface ServerToClientEvents {
   "chat:created": (chat: Chat) => void;
   "message:new": (message: Message) => void;
+  "message:edited": (message: Message) => void;
+  "message:deleted": (message: Message) => void;
   "message:read": (receipt: ReadReceipt) => void;
   "lastseen:updated": (lastSeen: LastSeen) => void;
 }
@@ -24,6 +26,8 @@ export interface ClientToServerEvents {
   "chat:leave": (payload: unknown, ack?: Ack<{ chatId: string }>) => void;
   "message:send": (payload: unknown, ack?: Ack<Message>) => void;
   "message:read": (payload: unknown, ack?: Ack<Message>) => void;
+  "message:edit": (payload: unknown, ack?: Ack<Message>) => void;
+  "message:delete": (payload: unknown, ack?: Ack<Message>) => void;
   "lastseen:update": (payload: unknown, ack?: Ack<{ lastSeen: LastSeen; updated: boolean }>) => void;
 }
 

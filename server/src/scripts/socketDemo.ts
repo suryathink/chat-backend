@@ -25,7 +25,14 @@ const post = async <T>(path: string, body: unknown): Promise<T> => {
 const connect = (name: string, userId: string): Promise<Socket> =>
   new Promise((resolve, reject) => {
     const socket = io(BASE_URL, { auth: { userId }, reconnection: false });
-    for (const event of ["chat:created", "message:new", "message:read", "lastseen:updated"]) {
+    for (const event of [
+      "chat:created",
+      "message:new",
+      "message:edited",
+      "message:deleted",
+      "message:read",
+      "lastseen:updated",
+    ]) {
       socket.on(event, (payload: unknown) => console.log(`  [${name} received] ${event}`, payload));
     }
     socket.once("connect", () => resolve(socket));
@@ -71,6 +78,18 @@ const run = async () => {
     await emit(bob, "message:read", { chatId, messageId: sent.data.id });
     await emit(bob, "lastseen:update", { chatId, messageId: sent.data.id });
     await pause();
+
+    step("Bob tries to delete Alice's message (only the sender may)");
+    console.log("  ", await emit(bob, "message:delete", { chatId, messageId: sent.data.id }));
+
+    step("Alice edits, then deletes her message (Bob is notified of both)");
+    await emit(alice, "message:edit", { chatId, messageId: sent.data.id, text: "Hello (edited)" });
+    await pause();
+    await emit(alice, "message:delete", { chatId, messageId: sent.data.id });
+    await pause();
+
+    step("Editing a deleted message is rejected");
+    console.log("  ", await emit(alice, "message:edit", { chatId, messageId: sent.data.id, text: "again" }));
   }
 
   step("Validation errors come back in the ack");

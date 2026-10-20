@@ -9,6 +9,8 @@ import type { Chat, LastSeen, Message, ReadReceipt } from "../types";
 export interface DomainEvents {
   "chat:created": [chat: Chat];
   "message:new": [message: Message];
+  "message:edited": [message: Message];
+  "message:deleted": [message: Message];
   "message:read": [receipt: ReadReceipt];
   "lastseen:updated": [lastSeen: LastSeen];
 }

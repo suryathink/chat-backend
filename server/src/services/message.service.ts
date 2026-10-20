@@ -9,8 +9,18 @@ import {
   toLastSeen,
   toMessage,
 } from "../models/message.model";
+import type { MessageDoc } from "../models/message.model";
 import type { LastSeen, Message, ReadReceipt } from "../types";
 import { chatService } from "./chat.service";
+
+/** The message must exist and belong to `userId`; only the sender may edit or delete it. */
+const assertOwnMessage = (doc: MessageDoc | undefined, messageId: string, userId: string): MessageDoc => {
+  if (!doc) throw AppError.notFound(`Message not found: ${messageId}`);
+  if (doc.senderId !== userId) {
+    throw AppError.forbidden("Only the sender can edit or delete this message");
+  }
+  return doc;
+};
 
 export const messageService = {
   async send(chatId: string, senderId: string, text: string): Promise<Message> {
@@ -108,6 +118,48 @@ export const messageService = {
     });
 
     if (receipt) domainEvents.emit("message:read", receipt);
+    return message;
+  },
+
+  /** Replaces the text of a message. Only its sender can, and not once deleted. */
+  async edit(chatId: string, messageId: string, userId: string, text: string): Promise<Message> {
+    await chatService.getForMember(chatId, userId);
+    const ref = messagesCollection(chatId).doc(messageId);
+
+    // Transaction: an edit racing a delete must not write text back into a
+    // message that was just deleted.
+    const message = await firestore.runTransaction(async (tx) => {
+      const doc = assertOwnMessage((await tx.get(ref)).data(), messageId, userId);
+      if (doc.deletedAt) throw AppError.conflict("Message has been deleted and can't be edited");
+
+      const editedAt = Timestamp.now();
+      tx.update(ref, { text, editedAt });
+      return toMessage(chatId, messageId, { ...doc, text, editedAt });
+    });
+
+    domainEvents.emit("message:edited", message);
+    return message;
+  },
+
+  /**
+   * Soft delete: clears the text and sets deletedAt, keeping the document so
+   * clients can show "message deleted" and cursors/lastSeen stay valid.
+   * Only the sender can delete. Deleting twice is a no-op.
+   */
+  async remove(chatId: string, messageId: string, userId: string): Promise<Message> {
+    await chatService.getForMember(chatId, userId);
+    const ref = messagesCollection(chatId).doc(messageId);
+
+    const { message, changed } = await firestore.runTransaction(async (tx) => {
+      const doc = assertOwnMessage((await tx.get(ref)).data(), messageId, userId);
+      if (doc.deletedAt) return { message: toMessage(chatId, messageId, doc), changed: false };
+
+      const deletedAt = Timestamp.now();
+      tx.update(ref, { text: "", deletedAt });
+      return { message: toMessage(chatId, messageId, { ...doc, text: "", deletedAt }), changed: true };
+    });
+
+    if (changed) domainEvents.emit("message:deleted", message);
     return message;
   },
 
