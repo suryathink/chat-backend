@@ -5,6 +5,7 @@ dist/
 # Secrets
 .env
 *service-account*.json
+*firebase-adminsdk*.json
 
 # Editor / OS / tooling
 .vscode/

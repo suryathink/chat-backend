@@ -19,20 +19,17 @@ const toChat = (row: ChatRow): Chat => ({
 
 export const ChatModel = {
   /**
-   * Inserts the chat unless one already exists for this pair.
-   * Returns true if a new row was created.
+   * Inserts the chat unless one already exists for this pair (then does nothing).
    *
    * ON DUPLICATE KEY UPDATE (not INSERT IGNORE): only a duplicate pair is
    * treated as "already exists"; foreign key or CHECK violations still throw.
    */
-  async insertIfAbsent(id: string, userLowId: string, userHighId: string): Promise<boolean> {
-    const [result] = await pool.execute<ResultSetHeader>(
+  async insertIfAbsent(id: string, userLowId: string, userHighId: string): Promise<void> {
+    await pool.execute<ResultSetHeader>(
       `INSERT INTO chats (id, user_low_id, user_high_id) VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE id = id`,
       [id, userLowId, userHighId],
     );
-    // 1 = inserted, 0 = duplicate left unchanged
-    return result.affectedRows === 1;
   },
 
   async findByPair(userLowId: string, userHighId: string): Promise<Chat | null> {

@@ -16,9 +16,15 @@ export const chatService = {
     // Canonical order: (A, B) and (B, A) are the same chat.
     const [lowId, highId] = userAId < userBId ? [userAId, userBId] : [userBId, userAId];
 
-    const created = await ChatModel.insertIfAbsent(randomUUID(), lowId, highId);
+    const newId = randomUUID();
+    await ChatModel.insertIfAbsent(newId, lowId, highId);
     const chat = await ChatModel.findByPair(lowId, highId);
     if (!chat) throw new Error(`Chat for ${lowId}/${highId} missing after upsert`);
+
+    // If the stored row carries the id we just generated, this call created it.
+    // (affectedRows is unreliable here: mysql2 enables FOUND_ROWS by default,
+    // so a no-op duplicate also reports 1.)
+    const created = chat.id === newId;
 
     if (created) domainEvents.emit("chat:created", chat);
     return { chat, created };
