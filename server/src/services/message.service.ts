@@ -19,11 +19,14 @@ export const messageService = {
     const ref = messagesCollection(chatId).doc();
     // Server timestamp, not the client's or this Node process's clock:
     // one clock for every writer keeps the ordering consistent.
+    // The sender has read their own message: "has X read it?" is always just
+    // readBy[X], and unread counts never include your own messages.
+    // Both server timestamps resolve to the same commit time.
     await ref.set({
       senderId,
       text,
       createdAt: FieldValue.serverTimestamp(),
-      readBy: {},
+      readBy: { [senderId]: FieldValue.serverTimestamp() },
     });
 
     // Read back once to get the timestamp Firestore actually assigned.
@@ -71,7 +74,7 @@ export const messageService = {
 
   /**
    * Records that `userId` read the message. Idempotent: the first read time is
-   * kept. Reading your own message is a no-op.
+   * kept. The sender is already in readBy from send(), so for them it's a no-op.
    */
   async markRead(chatId: string, messageId: string, userId: string): Promise<Message> {
     await chatService.getForMember(chatId, userId);

@@ -124,9 +124,11 @@ curl -X POST localhost:8080/chat/<chatId>/message/send -H "Content-Type: applica
 ```
 ```json
 { "message": { "id": "Xk3…", "chatId": "9b2f…", "senderId": "1111…", "text": "Hi Bob!",
-               "createdAt": "2026-10-20T09:31:00.123Z", "readBy": {} } }
+               "createdAt": "2026-10-20T09:31:00.123Z",
+               "readBy": { "1111…": "2026-10-20T09:31:00.123Z" } } }
 ```
 `text`: 1–2000 characters (trimmed). Sender must be a member of the chat.
+The sender is marked as having read their own message, so "has user X read it?" is always `readBy[X]`.
 
 ### 3. Get messages — `GET /chat/:chatId/messages?limit=50&before=<messageId>`
 Returns the latest `limit` messages (default 50, max 100), **ordered oldest → newest**.
@@ -142,7 +144,8 @@ To load older history, pass `before=<nextCursor>`.
 curl -X POST localhost:8080/chat/<chatId>/message/<messageId>/read -H "Content-Type: application/json" \
   -d '{"userId":"22222222-2222-4222-8222-222222222222"}'
 ```
-Returns the updated message. Idempotent: the first read time is kept. Marking your own message is a no-op.
+Returns the updated message. Idempotent: the first read time is kept. The sender is already in `readBy`, so marking your own message is a no-op.
+To show "seen" ticks, check `readBy` for the **other** member's id.
 
 ### 5. Update last seen — `POST /chat/:chatId/lastseen`
 ```bash
